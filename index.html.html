@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gym Quotation Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+  /* ── VARIABLES ── */
+  :root {
+    --lf:#0057B8; --lf-dark:#003d82; --lf-light:#e8f1fc;
+    --df:#C8102E; --df-dark:#9a0022; --df-light:#fce8eb;
+    --bg:#f4f6fa; --white:#ffffff; --text:#1a1f2e; --muted:#7b8498;
+    --border:#e2e6f0; --success:#1a9e5c; --shadow:0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg:0 8px 32px rgba(0,0,0,0.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* ── NAV ── */
+  .nav{background:var(--lf-dark);position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,57,130,0.4);}
+  .nav-inner{max-width:1300px;margin:0 auto;padding:0 20px;height:58px;display:flex;align-items:center;justify-content:space-between;}
+  .nav-brand{display:flex;align-items:center;gap:10px;}
+  .nav-logo{background:rgba(255,255,255,0.15);border-radius:8px;padding:5px 12px;font-weight:800;font-size:15px;letter-spacing:1.5px;color:#fff;}
+  .nav-sub{color:rgba(255,255,255,0.5);font-size:12px;}
+  .nav-tabs{display:flex;gap:2px;}
+  .nav-tab{background:transparent;color:rgba(255,255,255,0.7);border:none;border-radius:7px;padding:7px 16px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px;transition:all 0.2s;}
+  .nav-tab:hover,.nav-tab.active{background:rgba(255,255,255,0.18);color:#fff;}
+  .badge{background:#e53935;color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;}
+
+  /* ── PAGES ── */
+  .page{max-width:1300px;margin:0 auto;padding:24px 20px;display:none;}
+  .page.active{display:block;}
+
+  /* ── BRAND BAR ── */
+  .brand-bar{background:var(--white);border-radius:14px;padding:14px 20px;margin-bottom:18px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  /* brand pills — styled dynamically via inline style; base rules only here */
+  .brand-pill{display:flex;align-items:center;gap:8px;padding:8px 18px;border-radius:24px;border:2px solid;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;background:#fff;}
+  .brand-pill.active{color:#fff;}
+  .brand-pill:not(.active){background:#fff;}
+  .brand-count{background:rgba(255,255,255,0.25);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800;}
+  .brand-pill:not(.active) .brand-count{background:var(--border);color:var(--muted);}
+  .sheet-status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
+  .dot{width:8px;height:8px;border-radius:50%;}
+  .dot.live{background:var(--success);box-shadow:0 0 6px rgba(26,158,92,0.5);animation:pulse 2s infinite;}
+  .dot.demo{background:#f59e0b;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+  .refresh-btn{background:var(--lf-light);color:var(--lf);border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;display:flex;align-items:center;gap:5px;transition:all 0.2s;}
+  .refresh-btn:hover{background:var(--lf);color:#fff;}
+
+  /* ── CATALOG ── */
+  .search-row{display:flex;gap:10px;margin-bottom:14px;}
+  .search-box{flex:1;padding:11px 16px;border-radius:10px;border:2px solid var(--border);font-family:'Outfit',sans-serif;font-size:14px;outline:none;background:var(--white);transition:border 0.2s;}
+  .search-box:focus{border-color:var(--lf);}
+  .cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+  .cat-btn{padding:5px 13px;border-radius:20px;border:2px solid var(--border);background:var(--white);color:var(--muted);font-family:'Outfit',sans-serif;font-weight:600;font-size:11px;cursor:pointer;transition:all 0.18s;white-space:nowrap;}
+  .cat-btn.active{border-color:var(--lf);background:var(--lf);color:#fff;}
+  .results-count{font-size:12px;color:var(--muted);margin-bottom:12px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+  .card{background:var(--white);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);border:2px solid transparent;transition:transform 0.18s,box-shadow 0.18s,border-color 0.18s;}
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);}
+  .card.in-cart-lf{border-color:var(--lf);}
+  .card.in-cart-df{border-color:var(--df);}
+  .card-img{height:120px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;font-size:46px;}
+  .card-img img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;}
+  .card-brand-tag{position:absolute;top:7px;left:7px;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;z-index:2;}
+  .card-cart-tag{position:absolute;top:7px;right:7px;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;z-index:2;}
+  .card-body{padding:12px 14px;}
+  .card-code{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--lf);font-weight:600;margin-bottom:3px;}
+  .card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;line-height:1.3;min-height:34px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .card-desc{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.4;min-height:28px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .card-footer{display:flex;align-items:center;justify-content:space-between;}
+  .card-ext{font-size:10px;color:var(--muted);}
+  .add-btn{border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;color:#fff;transition:all 0.18s;}
+  .add-btn.lf{background:var(--lf);}
+  .add-btn.lf:hover{background:var(--lf-dark);}
+  .add-btn.df{background:var(--df);}
+  .add-btn.df:hover{background:var(--df-dark);}
+
+  /* ── CART ── */
+  .price-toggle{background:var(--white);border-radius:10px;padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);flex-wrap:wrap;}
+  .ptoggle{padding:6px 16px;border-radius:18px;border:2px solid var(--border);background:#fff;color:var(--muted);font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all 0.18s;}
+  .ptoggle.active{border-color:var(--lf);background:var(--lf);color:#fff;}
+  .cart-table{background:var(--white);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);overflow-x:auto;}
+  .cart-table table{width:100%;border-collapse:collapse;min-width:900px;}
+  .cart-table thead tr{background:var(--lf-dark);color:#fff;}
+  .cart-table th{padding:12px 10px;text-align:left;font-size:12px;font-weight:700;}
+  .cart-table th.r{text-align:right;}
+  .cart-table th.c{text-align:center;}
+  .cart-table td{padding:10px 10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+  .cart-table tbody tr:last-child td{border-bottom:none;}
+  .cart-table tbody tr:nth-child(even){background:#fafbfe;}
+  .brand-chip{border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;display:inline-block;}
+  .qty-ctrl{display:flex;align-items:center;gap:6px;justify-content:center;}
+  .qty-btn{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-weight:700;font-size:15px;color:var(--lf);transition:all 0.15s;}
+  .qty-btn:hover{background:var(--lf);color:#fff;border-color:var(--lf);}
+  .qty-input{width:46px;height:26px;border-radius:6px;border:1.5px solid var(--border);background:#fff;text-align:center;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--text);outline:none;-moz-appearance:textfield;transition:border 0.15s;}
+  .qty-input:focus{border-color:var(--lf);}
+  .qty-input::-webkit-inner-spin-button,.qty-input::-webkit-outer-spin-button{-webkit-appearance:none;}
+  .del-btn{background:#fff0f0;color:#e53935;border:1.5px solid #ffcdd2;border-radius:7px;padding:5px 10px;cursor:pointer;font-weight:700;font-size:12px;}
+  /* row-order controls */
+  .order-ctrl{display:flex;flex-direction:column;gap:2px;align-items:center;}
+  .order-btn{width:22px;height:20px;border-radius:4px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:11px;color:var(--muted);line-height:1;transition:all 0.15s;padding:0;}
+  .order-btn:hover{background:var(--lf);color:#fff;border-color:var(--lf);}
+  .order-btn:disabled{opacity:0.25;cursor:default;background:#fff;color:var(--muted);border-color:var(--border);}
+  .drag-handle{font-size:12px;color:var(--border);cursor:grab;user-select:none;line-height:1;}
+  .cart-total-row td{background:var(--lf-light)!important;font-weight:800!important;color:var(--lf)!important;border-bottom:none!important;}
+  .cart-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap;}
+
+  /* [ITEM DISCOUNT] per-row discount input styling */
+  .disc-input{width:62px;padding:5px 7px;border-radius:7px;border:1.5px solid var(--border);font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;outline:none;text-align:center;color:var(--text);background:#fff;transition:border 0.15s;}
+  .disc-input:focus{border-color:var(--lf);}
+  .disc-input.has-disc{border-color:var(--success);background:#f0fdf4;color:var(--success);}
+  .disc-presets{display:flex;gap:3px;margin-top:4px;}
+  .disc-preset{border:1px solid var(--border);background:#fff;color:var(--muted);border-radius:5px;padding:2px 5px;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.15s;font-family:'Outfit',sans-serif;}
+  .disc-preset:hover{border-color:var(--success);color:var(--success);background:#f0fdf4;}
+
+  /* ── CART SUMMARY FOOTER ── */
+  .cart-summary{background:var(--white);border-radius:12px;padding:14px 18px;margin-top:14px;box-shadow:var(--shadow);display:flex;justify-content:flex-end;}
+  .summary-box{min-width:300px;}
+  .summary-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted);}
+  .summary-row.disc{color:var(--success);font-weight:700;}
+  .summary-row.net{font-weight:800;color:var(--text);font-size:14px;}
+  .summary-row.vat-row{color:var(--muted);}
+  .summary-grand{display:flex;justify-content:space-between;padding:11px 12px;background:var(--lf-dark);border-radius:8px;margin-top:6px;color:#fff;}
+  .summary-grand-label{font-size:14px;font-weight:800;}
+  .summary-grand-val{font-size:17px;font-weight:800;}
+
+  /* ── BUTTONS ── */
+  .btn{border:none;border-radius:9px;padding:10px 20px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px;transition:all 0.18s;text-decoration:none;}
+  .btn-primary{background:linear-gradient(135deg,var(--lf),#1976d2);color:#fff;}
+  .btn-primary:hover{background:linear-gradient(135deg,var(--lf-dark),var(--lf));transform:translateY(-1px);}
+  .btn-outline{background:transparent;color:var(--lf);border:2px solid var(--lf);}
+  .btn-outline:hover{background:var(--lf-light);}
+  .btn-green{background:linear-gradient(135deg,#1b5e20,#2e7d32);color:#fff;}
+  .btn-green:hover{background:linear-gradient(135deg,#143d18,#1b5e20);transform:translateY(-1px);}
+  .btn-sm{padding:6px 12px;font-size:12px;border-radius:7px;}
+  .btn-amber{background:linear-gradient(135deg,#e65100,#f57c00);color:#fff;}
+  .btn-amber:hover{background:linear-gradient(135deg,#bf360c,#e65100);}
+  .btn-red{background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a;}
+  .btn-red:hover{background:#ffcdd2;}
+
+  /* ── QUOTE CONTROLS ── */
+  .quote-controls{background:var(--white);border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow);}
+  .section-title{font-size:13px;font-weight:700;color:var(--lf);margin-bottom:12px;display:flex;align-items:center;gap:7px;padding-bottom:8px;border-bottom:2px solid var(--lf-light);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+  .form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;}
+  .form-group label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;}
+  .form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border);font-family:'Outfit',sans-serif;font-size:14px;outline:none;transition:border 0.18s;}
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--lf);}
+  .form-group textarea{resize:vertical;min-height:60px;}
+  .ref-group{display:flex;gap:8px;align-items:flex-end;}
+  .ref-group input{flex:1;}
+
+  /* ── CLIENT DATABASE ── */
+  .client-db-panel{background:var(--white);border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow);}
+  .client-search-row{display:flex;gap:8px;margin-bottom:12px;}
+  .client-search-input{flex:1;padding:9px 14px;border-radius:8px;border:1.5px solid var(--border);font-family:'Outfit',sans-serif;font-size:13px;outline:none;}
+  .client-search-input:focus{border-color:var(--lf);}
+  .client-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;}
+  .client-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:9px;border:1.5px solid var(--border);background:#fafbfe;cursor:pointer;transition:all 0.18s;gap:10px;}
+  .client-item:hover{border-color:var(--lf);background:var(--lf-light);}
+  .client-item.selected{border-color:var(--lf);background:var(--lf-light);}
+  .client-item-info{flex:1;min-width:0;}
+  .client-item-name{font-weight:700;font-size:13px;color:var(--text);}
+  .client-item-co{font-size:11px;color:var(--muted);}
+  .client-item-actions{display:flex;gap:6px;flex-shrink:0;}
+  .no-clients{text-align:center;padding:24px;color:var(--muted);font-size:13px;}
+
+  /* ── QUOTE PREVIEW ── */
+  .quote-preview{background:var(--white);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-lg);}
+  .quote-header{background:linear-gradient(135deg,var(--lf-dark),var(--lf));padding:28px 36px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;}
+  .quote-company{font-size:22px;font-weight:800;letter-spacing:1px;margin-bottom:4px;}
+  .quote-tagline{opacity:0.65;font-size:12px;}
+  .quote-brands{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  .quote-brand-tag{background:rgba(255,255,255,0.18);border-radius:10px;padding:3px 10px;font-size:11px;font-weight:700;}
+  .quote-meta{text-align:right;}
+  .quote-num{font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+  .quote-date{opacity:0.7;font-size:12px;margin-top:3px;}
+  .quote-client{padding:18px 36px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .quote-client-block{}
+  .quote-client-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:5px;text-transform:uppercase;}
+  .quote-client-name{font-size:17px;font-weight:700;color:var(--lf);}
+  .quote-client-co{font-size:13px;color:var(--muted);}
+  .quote-client-detail{font-size:12px;color:var(--muted);margin-top:2px;}
+  .quote-body{padding:0 36px 28px;}
+  .quote-brand-section{margin-top:20px;}
+  .quote-brand-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .quote-brand-label{border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;color:#fff;white-space:nowrap;}
+  .quote-brand-line{flex:1;height:1px;background:var(--border);}
+  .quote-table-wrap{overflow-x:auto;}
+  .quote-table{width:100%;border-collapse:collapse;min-width:620px;}
+  .quote-table th{padding:9px 10px;text-align:left;font-size:11px;font-weight:700;border-bottom:2px solid;}
+  .quote-table th.r{text-align:right;}
+  .quote-table td{padding:9px 10px;font-size:12px;border-bottom:1px solid #f5f5f5;}
+  .quote-table td.r{text-align:right;}
+  .quote-table tbody tr:nth-child(even) td{background:#fafafa;}
+  .quote-totals{display:flex;justify-content:flex-end;margin-top:16px;}
+  .totals-box{min-width:320px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .total-row{display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted);}
+  .total-row.discount-line{background:#f0fdf4;color:var(--success);font-weight:700;}
+  .total-row.subtotal-line{font-weight:700;color:var(--text);}
+  .grand-row{display:flex;justify-content:space-between;padding:14px;background:var(--lf-dark);color:#fff;}
+  .grand-label{font-size:14px;font-weight:800;}
+  .grand-val{font-size:17px;font-weight:800;}
+  .quote-terms{margin:24px 0 0;padding:16px;background:var(--lf-light);border-radius:10px;border-left:4px solid var(--lf);}
+  .quote-terms-title{font-size:11px;font-weight:700;color:var(--lf);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+  .quote-terms p{font-size:11px;color:var(--muted);line-height:1.9;}
+
+  /* ── SHEET BANNER ── */
+  .sheet-banner{background:linear-gradient(135deg,#fff8e1,#fff3cd);border:2px solid #f59e0b;border-radius:14px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .sheet-banner-icon{font-size:28px;}
+  .sheet-banner-text h4{font-size:14px;font-weight:700;color:#92400e;margin-bottom:3px;}
+  .sheet-banner-text p{font-size:12px;color:#b45309;}
+  .sheet-input{flex:1;min-width:200px;padding:9px 14px;border-radius:8px;border:1.5px solid #f59e0b;font-family:'Outfit',sans-serif;font-size:13px;outline:none;background:#fff;}
+  .sheet-connect-btn{background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:9px 18px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;transition:all 0.18s;}
+  .sheet-connect-btn:hover{background:#d97706;}
+
+  /* ── MISC ── */
+  .empty-state{text-align:center;padding:60px 20px;background:var(--white);border-radius:14px;color:var(--muted);}
+  .empty-icon{font-size:52px;margin-bottom:12px;}
+  .spinner{width:36px;height:36px;border:4px solid var(--border);border-top-color:var(--lf);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .flash{position:fixed;top:68px;right:20px;background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;padding:12px 20px;color:#2e7d32;font-weight:600;font-size:13px;z-index:9999;box-shadow:var(--shadow-lg);transition:opacity 0.3s;pointer-events:none;}
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:600px){
+    .nav-sub{display:none;}
+    .nav-tab span:not(.badge){display:none;}
+    .form-grid,.form-grid-3{grid-template-columns:1fr;}
+    .quote-header,.quote-client{padding:18px 16px;}
+    .quote-body{padding:0 16px 20px;}
+    .quote-client{grid-template-columns:1fr;}
+  }
+  @media print{
+    .nav,.quote-controls,.client-db-panel,.brand-bar,.sheet-banner,
+    #page-catalog,#page-cart{display:none!important;}
+    #page-quote{display:block!important;padding:0;}
+    .quote-preview{box-shadow:none;border-radius:0;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════ NAV ═══════ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <div class="nav-logo">🏋️ GYM QUOTES</div>
+      <span class="nav-sub">Sales Quotation Builder</span>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('catalog')">📦 Catalog</button>
+      <button class="nav-tab" onclick="showPage('cart')">🛒 Cart <span class="badge" id="cart-badge" style="display:none">0</span></button>
+      <button class="nav-tab" onclick="showPage('quote')">📄 Quotation</button>
+    </div>
+  </div>
+</nav>
+
+<div id="flash" class="flash" style="display:none"></div>
+
+<!-- ═══════ CATALOG ═══════ -->
+<div id="page-catalog" class="page active">
+  <!-- Sheet override panel — hidden by default; only shown when admin clicks "Change Sheet" -->
+  <div id="sheet-override-panel" style="display:none;background:linear-gradient(135deg,#fff8e1,#fff3cd);border:2px solid #f59e0b;border-radius:14px;padding:14px 18px;margin-bottom:18px;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div style="font-size:22px">📊</div>
+    <div style="flex:1;min-width:180px">
+      <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:2px">Override Price Sheet URL</div>
+      <div style="font-size:11px;color:#b45309">Paste a different Google Sheet URL and click Load. Leave blank to reload the default.</div>
+    </div>
+    <input id="sheet-url-input" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1.5px solid #f59e0b;font-family:'Outfit',sans-serif;font-size:13px;outline:none;background:#fff;" placeholder="https://docs.google.com/spreadsheets/d/..."/>
+    <button onclick="connectSheet()" style="background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;">Load →</button>
+    <button onclick="document.getElementById('sheet-override-panel').style.display='none'" style="background:#fff;color:#b45309;border:1.5px solid #f59e0b;border-radius:8px;padding:8px 12px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;">✕ Close</button>
+  </div>
+  <div class="brand-bar">
+    <span style="font-weight:700;color:#37474f;font-size:14px">Brand:</span>
+    <!-- Brand pills rendered dynamically by renderBrandBar() -->
+    <div id="brand-pills-container" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
+    <div class="sheet-status">
+      <div class="dot demo" id="status-dot"></div>
+      <span id="status-text">Loading prices...</span>
+      <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
+      <button class="refresh-btn" onclick="toggleSheetOverride()" title="Change the price list source" style="background:#fff3cd;color:#92400e;border:1px solid #f59e0b;">⚙️ Change Sheet</button>
+    </div>
+  </div>
+  <div class="search-row">
+    <input class="search-box" id="search-input" placeholder="🔍  Search by product name or item code..." oninput="renderCatalog()"/>
+  </div>
+  <div class="cats" id="cats-container"></div>
+  <div class="results-count" id="results-count"></div>
+  <div class="grid" id="product-grid"></div>
+</div>
+
+<!-- ═══════ CART ═══════ -->
+<div id="page-cart" class="page">
+  <h2 style="font-size:22px;font-weight:800;color:var(--lf);margin-bottom:18px">🛒 Cart</h2>
+  <div class="price-toggle">
+    <span style="font-weight:600;font-size:13px;color:#546e7a">Base Price:</span>
+    <button class="ptoggle active" id="pt-rrp" onclick="setPriceType('rrp')">U. RRP (Full Price)</button>
+    <button class="ptoggle" id="pt-ext" onclick="setPriceType('ext30')">U. EXTD 30% (Commercial)</button>
+  </div>
+  <div id="cart-content"></div>
+</div>
+
+<!-- ═══════ QUOTE ═══════ -->
+<div id="page-quote" class="page">
+
+  <!-- ── CLIENT DATABASE PANEL ── -->
+  <div class="client-db-panel" id="client-db-panel">
+    <div class="section-title">👥 Client Database</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" onclick="newClientForm()">➕ New Client</button>
+      <button class="btn btn-outline btn-sm" onclick="toggleClientList()">📋 Saved Clients</button>
+    </div>
+    <div id="client-list-section" style="display:none;margin-bottom:16px">
+      <div class="client-search-row">
+        <input class="client-search-input" id="client-search" placeholder="🔍 Search saved clients..." oninput="renderClientList()"/>
+      </div>
+      <div class="client-list" id="client-list"></div>
+    </div>
+    <div id="client-form-section">
+      <div class="form-grid-3">
+        <div class="form-group"><label>Client Name *</label><input id="c-name" placeholder="e.g. Ahmed Al-Rashid" oninput="syncClientToQuote()"/></div>
+        <div class="form-group"><label>Company / Gym Name *</label><input id="c-company" placeholder="e.g. Platinum Fitness" oninput="syncClientToQuote()"/></div>
+        <div class="form-group"><label>Contact Person</label><input id="c-contact" placeholder="e.g. Mohammed Ali"/></div>
+        <div class="form-group"><label>Phone</label><input id="c-phone" placeholder="+966 5X XXX XXXX"/></div>
+        <div class="form-group"><label>Email</label><input id="c-email" type="email" placeholder="email@company.com"/></div>
+        <div class="form-group"><label>VAT / CR Number</label><input id="c-vat" placeholder="e.g. 300XXXXXXXXX"/></div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Address</label>
+        <textarea id="c-address" placeholder="Full address..." rows="2"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="saveClient()">💾 Save Client</button>
+        <button class="btn btn-outline btn-sm" onclick="updateClient()" id="btn-update-client" style="display:none">✏️ Update Client</button>
+        <button class="btn btn-red btn-sm" onclick="deleteClient()" id="btn-delete-client" style="display:none">🗑️ Delete Client</button>
+        <button class="btn btn-outline btn-sm" onclick="newClientForm()">✕ Clear Form</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── QUOTE CONTROLS ── (global discount REMOVED — discount is now per item in cart) -->
+  <div class="quote-controls">
+    <div class="section-title">📋 Quotation Details</div>
+    <div class="form-grid" style="margin-bottom:14px">
+      <div class="form-group">
+        <label>Quotation Reference</label>
+        <div class="ref-group">
+          <input id="q-ref" placeholder="SQ-26-00001" oninput="renderQuote()"/>
+          <button class="btn btn-amber btn-sm" onclick="generateRef()" style="white-space:nowrap">🔢 Generate Ref</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Validity</label>
+        <select id="q-validity" onchange="renderQuote()">
+          <option>15 days</option><option selected>30 days</option>
+          <option>45 days</option><option>60 days</option><option>90 days</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid" style="margin-bottom:14px">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="q-date" oninput="renderQuote()"/>
+      </div>
+      <!-- [ITEM DISCOUNT] no global discount field here — discount is per item in the cart -->
+      <div class="form-group">
+        <label>Base Price Type</label>
+        <div style="display:flex;gap:8px;align-items:center;padding-top:4px">
+          <span style="font-size:13px;color:var(--muted)" id="q-price-label">Currently: U. RRP — change in Cart tab</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="showPage('cart')">← Back to Cart</button>
+      <button class="btn btn-green" onclick="exportExcel()">📊 Export Excel</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Print / PDF</button>
+    </div>
+  </div>
+
+  <div id="quote-preview"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// DEMO DATA
+// ═══════════════════════════════════════
+const DEMO = [
+  {item_code:"ASPT-SL-xxxHN-12",product_name:"Aspire SL Treadmill",description:"High voltage base treadmill with SL console, suitable for commercial gym use",vendor:"Life Fitness",type:"Cardio",unit_price:43180,ext30:30230,image_url:""},
+  {item_code:"ASPC-SL-xxxXN-12",product_name:"Aspire SL Upright Bike",description:"Upright bike base with smooth resistance and SL console connectivity",vendor:"Life Fitness",type:"Cardio",unit_price:16510,ext30:11560,image_url:""},
+  {item_code:"ASPX-SL-xxxXN-12",product_name:"Aspire SL Cross Trainer",description:"Elliptical cross trainer with natural stride motion and SL console",vendor:"Life Fitness",type:"Cardio",unit_price:34930,ext30:24460,image_url:""},
+  {item_code:"INT-SL-xxxHF-14AR",product_name:"Integrity+ Treadmill",description:"High performance commercial treadmill with high voltage base and SL console",vendor:"Life Fitness",type:"Cardio",unit_price:52070,ext30:36450,image_url:""},
+  {item_code:"HS-CP",product_name:"Hammer Chest Press",description:"Select SE full shroud chest press with selectorized weight stack",vendor:"Life Fitness",type:"Selectorized",unit_price:34920,ext30:24450,image_url:""},
+  {item_code:"HS-PD",product_name:"Hammer Lat Pulldown",description:"Select SE full shroud lat pulldown with ergonomic cable path",vendor:"Life Fitness",type:"Selectorized",unit_price:28320,ext30:19830,image_url:""},
+  {item_code:"HS-LE",product_name:"Hammer Leg Extension",description:"Select SE full leg extension with biomechanically correct cam design",vendor:"Life Fitness",type:"Selectorized",unit_price:39530,ext30:27680,image_url:""},
+  {item_code:"HS-SLP",product_name:"Hammer Leg Press",description:"Select SE full leg press with linear bearing carriage for smooth motion",vendor:"Life Fitness",type:"Selectorized",unit_price:53380,ext30:37370,image_url:""},
+  {item_code:"HS-SP",product_name:"Hammer Shoulder Press",description:"Select SE full shoulder press with independent arm movement",vendor:"Life Fitness",type:"Selectorized",unit_price:29640,ext30:20750,image_url:""},
+  {item_code:"PH-HS-DB-2300-01",product_name:"Hammer Dumbbell Set 2-20kg",description:"Urethane dumbbell set from 2kg to 20kg, commercial grade with hex design",vendor:"Life Fitness",type:"Free Weights",unit_price:21200,ext30:14840,image_url:""},
+  {item_code:"PH-FW-D3",product_name:"Hammer Dumbbell Rack 3-Tier",description:"Three tier saddle dumbbell rack for organized free weight storage",vendor:"Life Fitness",type:"Free Weights",unit_price:15830,ext30:11090,image_url:""},
+  {item_code:"LBR-MA",product_name:"LF Multi Adjustable Bench",description:"Multi-position adjustable bench for free weight exercises",vendor:"Life Fitness",type:"Free Weights",unit_price:9860,ext30:6910,image_url:""},
+  {item_code:"LPP-CX",product_name:"PWR Play Cable Crossover",description:"Core connector adjustable cable crossover for functional training",vendor:"Life Fitness",type:"Functional",unit_price:42470,ext30:29730,image_url:""},
+  {item_code:"LF-KB-1103-02",product_name:"Kettlebell 16kg Rubber",description:"Life Fitness rubber kettlebell with stainless steel handle, 16kg",vendor:"Life Fitness",type:"Accessories",unit_price:1150,ext30:810,image_url:""},
+  {item_code:"LF-KB-1105-02",product_name:"Kettlebell 24kg Rubber",description:"Life Fitness rubber kettlebell with ergonomic grip, 24kg",vendor:"Life Fitness",type:"Accessories",unit_price:1650,ext30:1160,image_url:""},
+  {item_code:"DF-T100",product_name:"Delta Commercial Treadmill",description:"Heavy duty commercial treadmill with digital display and multiple programs",vendor:"Delta Fitness",type:"Cardio",unit_price:35000,ext30:24500,image_url:""},
+  {item_code:"DF-B200",product_name:"Delta Upright Bike",description:"Commercial upright bike with magnetic resistance and ergonomic console",vendor:"Delta Fitness",type:"Cardio",unit_price:12000,ext30:8400,image_url:""},
+  {item_code:"DF-CP100",product_name:"Delta Chest Press",description:"Commercial selectorized chest press machine with weight stack and chrome covers",vendor:"Delta Fitness",type:"Selectorized",unit_price:22000,ext30:15400,image_url:""},
+  {item_code:"DF-DB-2020",product_name:"Delta Dumbbell Set 2-20kg",description:"Commercial rubber dumbbell set 2-20kg with rack included",vendor:"Delta Fitness",type:"Free Weights",unit_price:15000,ext30:10500,image_url:""},
+  {item_code:"DF-SM-PRO",product_name:"Delta Pro Smith Machine",description:"Professional smith machine with linear bearings and integrated safety catches",vendor:"Delta Fitness",type:"Free Weights",unit_price:32000,ext30:22400,image_url:""},
+];
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+// ── DEFAULT SHARED PRICE LIST ──────────────────────────────────────────────
+// Change this URL to point to your shared Google Sheet (must be "Anyone with link — Viewer")
+const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR8ayI_GpxIGGOUOcdvaesL5Yn4Ej4DXmgEn32dbgIjUOvB8vleQTtxiAqueKXo8q8fvCoUVg-Y660x/pub?output=csv";
+// ────────────────────────────────────────────────────────────────────────────
+
+let products = [...DEMO];
+let priceType = 'rrp';
+let activeBrands = []; // populated dynamically from loaded product data
+let activeCategory = 'All';
+let sheetUrl = DEFAULT_SHEET_URL;   // always starts from the shared default
+let selectedClientId = null;
+
+// cart stores qty + discount per item code
+// Structure: cart = { "ITEM_CODE": { qty: 2, discount: 10 }, ... }
+let cart = {};
+// cartOrder is an ordered array of item codes — controls row sequence in cart + quotation
+let cartOrder = [];
+
+// Known brand colours — add more here as needed
+const BRAND_CFG = {
+  'Life Fitness': {color:'#0057B8', light:'#e8f1fc', icon:'🔵', short:'LF'},
+  'Delta Fitness': {color:'#C8102E', light:'#fce8eb', icon:'🔴', short:'DF'},
+};
+
+// Fallback palette for unknown vendors (cycles through these)
+const VENDOR_PALETTE = [
+  {color:'#2e7d32', light:'#e8f5e9'},
+  {color:'#6a1b9a', light:'#f3e5f5'},
+  {color:'#e65100', light:'#fff3e0'},
+  {color:'#00695c', light:'#e0f2f1'},
+  {color:'#1565c0', light:'#e3f2fd'},
+  {color:'#4a148c', light:'#ede7f6'},
+  {color:'#bf360c', light:'#fbe9e7'},
+  {color:'#0277bd', light:'#e1f5fe'},
+];
+
+// Returns config for any vendor — known brands get their colour, others get a palette colour
+function getVendorCfg(vendor) {
+  if (BRAND_CFG[vendor]) return BRAND_CFG[vendor];
+  // Assign deterministic colour from palette based on vendor name hash
+  let hash = 0;
+  for (let i = 0; i < vendor.length; i++) hash = (hash * 31 + vendor.charCodeAt(i)) & 0xffff;
+  const palette = VENDOR_PALETTE[hash % VENDOR_PALETTE.length];
+  // Build short name from initials (up to 3 chars)
+  const short = vendor.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3);
+  return { color: palette.color, light: palette.light, icon: '🏢', short };
+}
+const CAT_ICONS = {Cardio:'🏃',Selectorized:'💪','Free Weights':'🏋️',Functional:'⚡',Accessories:'🎽',Studio:'🎵',Plates:'🥏',Racks:'🔩'};
+const fmt = n => Number(n).toLocaleString('en-US');
+const today = () => new Date().toISOString().slice(0,10);
+
+// ═══════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const map = {catalog:0, cart:1, quote:2};
+  document.querySelectorAll('.nav-tab')[map[name]].classList.add('active');
+  if (name==='cart') renderCart();
+  if (name==='quote') { syncPriceLabelToQuote(); renderQuote(); }
+}
+
+function showFlash(msg, isError) {
+  const el = document.getElementById('flash');
+  el.textContent = msg;
+  el.style.background = isError ? '#ffebee' : '#e8f5e9';
+  el.style.borderColor = isError ? '#ef9a9a' : '#a5d6a7';
+  el.style.color = isError ? '#c62828' : '#2e7d32';
+  el.style.display = 'block'; el.style.opacity = '1';
+  setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>el.style.display='none',300); }, 2500);
+}
+
+// Keep the quotation page price label in sync with the cart toggle
+function syncPriceLabelToQuote() {
+  const el = document.getElementById('q-price-label');
+  if (el) el.textContent = 'Currently: ' + (priceType==='rrp' ? 'U. RRP (Full Price)' : 'U. EXTD 30% (Commercial)') + ' — change in Cart tab';
+}
+
+// ═══════════════════════════════════════
+// QUOTATION REFERENCE
+// ═══════════════════════════════════════
+function generateRef() {
+  const yy = String(new Date().getFullYear()).slice(-2);
+  const last = parseInt(localStorage.getItem('gq_ref_seq') || '0') + 1;
+  localStorage.setItem('gq_ref_seq', last);
+  const ref = `SQ-${yy}-${String(last).padStart(5,'0')}`;
+  document.getElementById('q-ref').value = ref;
+  localStorage.setItem('gq_last_ref', ref);
+  renderQuote();
+  showFlash('🔢 Reference generated: ' + ref);
+}
+
+function getRef() {
+  return document.getElementById('q-ref').value.trim() || 'SQ-DRAFT';
+}
+
+// ═══════════════════════════════════════
+// PRICE HELPERS
+// ═══════════════════════════════════════
+// getBasePrice — always returns unit_price regardless of price mode toggle.
+// Used ONLY for the "Base Price" display column. Never used in calculations.
+function getBasePrice(p) {
+  return p.unit_price;
+}
+
+// getPricingBase — returns the price that feeds into calculations.
+// Switches between unit_price (RRP) and ext30 (EXTD 30%) based on the toggle.
+function getPricingBase(p) {
+  return priceType === 'rrp' ? p.unit_price : p.ext30;
+}
+
+// getItemNetPrice — starts from getPricingBase, then applies item-level discount.
+function getItemNetPrice(item) {
+  const pricingBase = getPricingBase(item);
+  const disc = item.discount || 0;
+  if (disc <= 0) return pricingBase;
+  return Math.round(pricingBase * (1 - disc / 100) * 100) / 100;
+}
+
+// ═══════════════════════════════════════
+// GOOGLE SHEET
+// ═══════════════════════════════════════
+// ── GOOGLE SHEET URL HANDLING ───────────────────────────────────────────────
+// Supports two URL formats:
+//
+//   A) Published CSV link — used directly as-is:
+//      https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv
+//
+//   B) Normal share/edit link — extracts FILE_ID + gid, builds export URL:
+//      https://docs.google.com/spreadsheets/d/FILE_ID/edit?gid=0
+//      → https://docs.google.com/spreadsheets/d/FILE_ID/export?format=csv&gid=0
+//
+// Returns { fetchUrl, valid }.
+function getSheetFetchUrl(url) {
+  if (!url) return { fetchUrl: null, valid: false };
+
+  // Format A: published /pub link — use directly, ensure output=csv is present
+  if (url.includes('/d/e/') || url.includes('/pub?') || url.includes('/pub&')) {
+    let fetchUrl = url;
+    if (!fetchUrl.includes('output=csv')) {
+      fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + 'output=csv';
+    }
+    return { fetchUrl, valid: true };
+  }
+
+  // Format B: normal share/edit link — extract ID + gid, build export URL
+  const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!idMatch) return { fetchUrl: null, valid: false };
+  const id = idMatch[1];
+  const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
+  const gid = gidMatch ? gidMatch[1] : '0';
+  return {
+    fetchUrl: `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`,
+    valid: true
+  };
+}
+
+// Show/hide the override panel (for admin use)
+function toggleSheetOverride() {
+  const panel = document.getElementById('sheet-override-panel');
+  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+}
+
+// Called by the override panel "Load" button — lets admin point to a different sheet
+async function connectSheet() {
+  const inputUrl = document.getElementById('sheet-url-input').value.trim();
+  sheetUrl = inputUrl || DEFAULT_SHEET_URL;
+  document.getElementById('sheet-override-panel').style.display = 'none';
+  await loadFromSheet();
+}
+
+// Refresh from the currently active sheet URL
+async function refreshData() {
+  await loadFromSheet();
+}
+
+// Main loader — always uses sheetUrl which defaults to DEFAULT_SHEET_URL
+async function loadFromSheet() {
+  const { fetchUrl, valid } = getSheetFetchUrl(sheetUrl);
+  if (!valid) {
+    showFlash('❌ Invalid Google Sheet URL. Check DEFAULT_SHEET_URL in the code.', true);
+    renderCatalog();
+    return;
+  }
+
+  const grid = document.getElementById('product-grid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px"><div class="spinner"></div><p style="color:var(--muted)">Loading price list...</p></div>';
+
+  // Try direct fetch first, then two CORS proxies as fallback
+  const attempts = [
+    { label: 'direct', url: fetchUrl },
+    { label: 'proxy1', url: 'https://corsproxy.io/?' + encodeURIComponent(fetchUrl) },
+    { label: 'proxy2', url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(fetchUrl) },
+  ];
+
+  let lastError = 'Unknown error';
+  for (const attempt of attempts) {
+    try {
+      const res = await fetch(attempt.url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      // If we got an HTML page (error page) instead of CSV data, skip this attempt
+      if (text.trim().startsWith('<')) throw new Error('Received HTML instead of CSV data');
+      const parsed = parseCSV(text);
+      if (!parsed.length) throw new Error('No products found — check column headers are in row 1');
+      // ── Success ──
+      products = parsed;
+      document.getElementById('status-dot').className = 'dot live';
+      document.getElementById('status-text').textContent = 'Live · ' + products.length + ' products';
+      activeBrands = [...getUniqueVendors()]; renderBrandBar(); activeCategory = 'All'; renderCatalog();
+      showFlash('✅ ' + products.length + ' products loaded!');
+      return;
+    } catch(e) {
+      lastError = e.message;
+      // continue to next attempt
+    }
+  }
+
+  // All 3 attempts failed
+  document.getElementById('status-dot').className = 'dot demo';
+  document.getElementById('status-text').textContent = 'Price list unavailable';
+  showFlash('❌ Could not load price list: ' + lastError, true);
+  grid.innerHTML = `
+    <div style="grid-column:1/-1;background:#fff8e1;border:2px solid #f59e0b;border-radius:14px;padding:28px 24px;text-align:center;max-width:600px;margin:0 auto;">
+      <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+      <div style="font-size:16px;font-weight:700;color:#92400e;margin-bottom:8px">Could not load the price list</div>
+      <div style="font-size:13px;color:#b45309;margin-bottom:16px">${lastError}</div>
+      <button class="btn btn-amber btn-sm" onclick="loadFromSheet()" style="margin-right:8px">🔄 Try Again</button>
+      <button class="btn btn-outline btn-sm" onclick="products=[...DEMO];activeBrands=[...getUniqueVendors()];activeCategory='All';renderBrandBar();renderCatalog();showFlash('✅ Showing demo data — connect your sheet when ready');">Use Demo Data</button>
+    </div>`;
+}
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = splitCSVLine(lines[0]).map(h => h.replace(/"/g,'').trim().toLowerCase());
+  const parseNum = v => parseFloat(String(v).replace(/[^\d.]/g,'')) || 0;
+  return lines.slice(1).map(line => {
+    const vals = splitCSVLine(line);
+    const row = {};
+    headers.forEach((h,i) => { row[h] = (vals[i]||'').replace(/^"|"$/g,'').trim(); });
+    if (!row.item_code) return null;
+    const up = parseNum(row.unit_price);
+    return {
+      item_code: row.item_code,
+      product_name: row.product_name || row.item_code,
+      description: row.description || '',
+      vendor: row.vendor || 'Life Fitness',
+      type: row.type || 'General',
+      unit_price: up,
+      ext30: parseNum(row.ext30) || Math.ceil(up * 0.7),
+      image_url: row.image_url || ''
+    };
+  }).filter(Boolean);
+}
+function splitCSVLine(line) {
+  const r=[]; let c=''; let q=false;
+  for(let i=0;i<line.length;i++){
+    if(line[i]==='"'){q=!q;}
+    else if(line[i]===','&&!q){r.push(c);c='';}
+    else{c+=line[i];}
+  }
+  r.push(c); return r;
+}
+
+// ═══════════════════════════════════════
+// BRAND FILTER
+// ═══════════════════════════════════════
+// Returns sorted unique vendor list from current products
+function getUniqueVendors() {
+  return [...new Set(products.map(p => p.vendor).filter(Boolean))].sort();
+}
+
+// Select a single vendor (or toggle off to show all if already sole selection)
+function toggleBrand(vendor) {
+  const all = getUniqueVendors();
+  if (activeBrands.length === 1 && activeBrands[0] === vendor) {
+    // Already the only active one — expand back to All
+    activeBrands = [...all];
+  } else {
+    activeBrands = [vendor];
+  }
+  renderBrandBar(); activeCategory = 'All'; renderCatalog();
+}
+
+// Show all vendors
+function selectAll() {
+  activeBrands = [...getUniqueVendors()];
+  renderBrandBar(); activeCategory = 'All'; renderCatalog();
+}
+
+// Render the entire brand bar dynamically from product data
+function renderBrandBar() {
+  const vendors = getUniqueVendors();
+  // If activeBrands is empty or contains vendors no longer in data, reset to all
+  if (activeBrands.length === 0 || activeBrands.every(b => !vendors.includes(b))) {
+    activeBrands = [...vendors];
+  }
+  const allActive = vendors.every(v => activeBrands.includes(v));
+  const container = document.getElementById('brand-pills-container');
+  if (!container) return;
+
+  let html = '';
+
+  // "All" pill
+  const allColor = '#546e7a';
+  html += `<button
+    class="brand-pill${allActive ? ' active' : ''}"
+    onclick="selectAll()"
+    style="${allActive
+      ? `border-color:${allColor};background:${allColor};color:#fff;box-shadow:0 4px 14px rgba(84,110,122,0.35);`
+      : `border-color:${allColor};color:${allColor};background:#fff;`}"
+  >🌐 All</button>`;
+
+  // One pill per vendor
+  vendors.forEach(vendor => {
+    const cfg = getVendorCfg(vendor);
+    const isActive = activeBrands.includes(vendor);
+    const count = products.filter(p => p.vendor === vendor).length;
+    html += `<button
+      class="brand-pill${isActive ? ' active' : ''}"
+      onclick="toggleBrand('${vendor.replace(/'/g, "\'")}')"
+      style="${isActive
+        ? `border-color:${cfg.color};background:${cfg.color};color:#fff;box-shadow:0 4px 14px ${cfg.color}55;`
+        : `border-color:${cfg.color};color:${cfg.color};background:#fff;`}"
+    >${cfg.icon} ${vendor} <span class="brand-count">${count}</span></button>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// Legacy alias — called from demo data fallback button and other places
+function updateBrandCounts() { renderBrandBar(); }
+
+// ═══════════════════════════════════════
+// CATALOG
+// ═══════════════════════════════════════
+function getVisible() { return products.filter(p=>activeBrands.includes(p.vendor)); }
+function getFiltered() {
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  let base = getVisible();
+  if (activeCategory!=='All') base = base.filter(p=>p.type===activeCategory);
+  if (q) base = base.filter(p=>p.product_name.toLowerCase().includes(q)||p.item_code.toLowerCase().includes(q)||p.description.toLowerCase().includes(q));
+  return base;
+}
+function setCategory(cat) { activeCategory=cat; renderCatalog(); }
+function renderCategories() {
+  const cats = ['All', ...new Set(getVisible().map(p=>p.type))];
+  document.getElementById('cats-container').innerHTML = cats.map(c =>
+    `<button class="cat-btn${c===activeCategory?' active':''}" onclick="setCategory('${c}')">${CAT_ICONS[c]||'📦'} ${c}</button>`
+  ).join('');
+}
+function renderCatalog() {
+  renderBrandBar(); renderCategories();
+  const filtered = getFiltered();
+  document.getElementById('results-count').textContent = filtered.length + ' products' + (activeCategory!=='All'?' in '+activeCategory:'');
+  const grid = document.getElementById('product-grid');
+  const show = filtered.slice(0,200);
+  if (!show.length) { grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)">No products found.</div>'; return; }
+  grid.innerHTML = show.map(p => {
+    const cfg = getVendorCfg(p.vendor);
+    // catalog shows base price; if item is in cart, show cart tag with disc info
+    const inCartEntry = cart[p.item_code];
+    const inCartQty = inCartEntry ? inCartEntry.qty : 0;
+    const inCartDisc = inCartEntry ? inCartEntry.discount : 0;
+    const base = p.unit_price;          // catalog always shows unit_price
+    const altPrice = p.ext30;            // secondary line always shows ext30
+    const altLabel = 'Ext 30%';
+    const bc = p.vendor==='Delta Fitness'?'df':'lf';
+    const cartTagText = inCartQty > 0
+      ? (inCartDisc > 0 ? `✓ ${inCartQty} · ${inCartDisc}% off` : `✓ ${inCartQty}`)
+      : '';
+    return `<div class="card${inCartQty>0?' in-cart-'+bc:''}">
+      <div class="card-img" style="background:linear-gradient(135deg,${cfg.color}15,${cfg.color}28)">
+        ${p.image_url?`<img src="${p.image_url}" loading="lazy" onerror="this.style.display='none'"/>`:''}
+        <span style="position:relative;z-index:1;opacity:0.5">${CAT_ICONS[p.type]||'📦'}</span>
+        <div class="card-brand-tag" style="background:${cfg.color}">${cfg.icon} ${cfg.short}</div>
+        ${inCartQty>0?`<div class="card-cart-tag" style="background:${cfg.color}">${cartTagText}</div>`:''}
+      </div>
+      <div class="card-body">
+        <div class="card-code">${p.item_code}</div>
+        <div class="card-name">${p.product_name}</div>
+        <div class="card-desc">${p.description||'—'}</div>
+        <div class="card-footer">
+          <div>
+            <div style="font-size:15px;font-weight:800;color:${cfg.color}">SAR ${fmt(base)}</div>
+            <div class="card-ext">${altLabel}: SAR ${fmt(altPrice)}</div>
+          </div>
+          <button class="add-btn ${bc}" onclick="addToCart('${p.item_code}')">+ Add</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  if (filtered.length>200) grid.innerHTML += `<div style="grid-column:1/-1;text-align:center;padding:18px;background:var(--white);border-radius:12px;color:var(--muted);font-size:13px">Showing first 200 of ${filtered.length} — use search to narrow down.</div>`;
+}
+
+// ═══════════════════════════════════════
+// CART — [ITEM DISCOUNT] refactored
+// ═══════════════════════════════════════
+function getProduct(code) { return products.find(p=>p.item_code===code); }
+
+// getCartItems returns items in cartOrder sequence (preserves manual sort order)
+function getCartItems() {
+  // Sync cartOrder: add any codes in cart not yet in order, remove any no longer in cart
+  const cartCodes = Object.keys(cart);
+  cartCodes.forEach(c => { if (!cartOrder.includes(c)) cartOrder.push(c); });
+  cartOrder = cartOrder.filter(c => cart[c]);
+  return cartOrder.map(code => {
+    const entry = cart[code];
+    const p = getProduct(code);
+    if (!p || !entry) return null;
+    return { ...p, qty: entry.qty, discount: entry.discount || 0 };
+  }).filter(Boolean);
+}
+
+// totals using per-item discount
+function cartSubtotalBefore() {
+  return getCartItems().reduce((s, i) => s + getPricingBase(i) * i.qty, 0);
+}
+function cartTotalDiscountAmt() {
+  return getCartItems().reduce((s, i) => {
+    const base = getPricingBase(i);
+    const net = getItemNetPrice(i);
+    return s + (base - net) * i.qty;
+  }, 0);
+}
+function cartSubtotalAfter() {
+  return getCartItems().reduce((s, i) => s + getItemNetPrice(i) * i.qty, 0);
+}
+function hasAnyDiscount() {
+  return getCartItems().some(i => i.discount > 0);
+}
+
+function addToCart(code) {
+  if (cart[code]) {
+    cart[code].qty += 1;
+  } else {
+    cart[code] = { qty: 1, discount: 0 };
+    if (!cartOrder.includes(code)) cartOrder.push(code); // append to end of order
+  }
+  updateCartBadge(); renderCatalog();
+  showFlash('✅ Added to cart!');
+}
+
+function updateCartBadge() {
+  const total = Object.values(cart).reduce((a, b) => a + b.qty, 0);
+  const b = document.getElementById('cart-badge');
+  b.textContent = total; b.style.display = total>0 ? 'inline-flex' : 'none';
+}
+
+function setPriceType(type) {
+  priceType = type;
+  document.getElementById('pt-rrp').classList.toggle('active', type==='rrp');
+  document.getElementById('pt-ext').classList.toggle('active', type==='ext30');
+  syncPriceLabelToQuote();
+  renderCart(); renderCatalog();
+}
+
+// change qty — preserves discount
+function changeQty(code, delta) {
+  if (!cart[code]) return;
+  cart[code].qty += delta;
+  if (cart[code].qty <= 0) delete cart[code];
+  updateCartBadge(); renderCart();
+}
+
+// Direct qty edit from the number input in the cart table
+function setQty(code, value) {
+  const n = parseInt(value, 10);
+  if (!cart[code]) return;
+  if (isNaN(n) || n <= 0) {
+    // Remove item if cleared or set to 0/negative
+    delete cart[code];
+    updateCartBadge(); renderCart();
+  } else {
+    cart[code].qty = n;
+    updateCartBadge();
+    // Update totals live without full re-render (preserves input focus)
+    updateCartTotalsDisplay();
+    renderCatalog();
+  }
+}
+
+function removeFromCart(code) {
+  delete cart[code];
+  cartOrder = cartOrder.filter(c => c !== code);
+  updateCartBadge(); renderCart();
+}
+
+// Move a cart item up (-1) or down (+1) in cartOrder, then re-render
+function moveCartItem(code, direction) {
+  const idx = cartOrder.indexOf(code);
+  if (idx === -1) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= cartOrder.length) return; // already at boundary
+  // Swap the two positions
+  [cartOrder[idx], cartOrder[newIdx]] = [cartOrder[newIdx], cartOrder[idx]];
+  renderCart();
+}
+
+// update discount for a specific item — called from inline input
+function setItemDiscount(code, value) {
+  if (!cart[code]) return;
+  const disc = Math.min(Math.max(parseFloat(value) || 0, 0), 100);
+  cart[code].discount = disc;
+  // Re-render cart totals without full re-render (to preserve focus)
+  updateCartTotalsDisplay();
+  renderCatalog(); // update catalog card tag
+}
+
+// quick preset discount buttons per row
+function setItemDiscountPreset(code, pct) {
+  if (!cart[code]) return;
+  cart[code].discount = pct;
+  renderCart(); // full re-render since we change the input value
+}
+
+// update only the totals area without re-rendering the whole table
+function updateCartTotalsDisplay() {
+  const el = document.getElementById('cart-totals-area');
+  if (!el) return;
+  const subtotalBefore = cartSubtotalBefore();
+  const discAmt = Math.round(cartTotalDiscountAmt());
+  const subtotalAfter = cartSubtotalAfter();
+  const anyDisc = hasAnyDiscount();
+  el.innerHTML = buildCartSummaryHTML(subtotalBefore, discAmt, subtotalAfter, anyDisc);
+}
+
+function buildCartSummaryHTML(subtotalBefore, discAmt, subtotalAfter, anyDisc) {
+  return `
+    <div class="summary-box">
+      ${anyDisc ? `
+        <div class="summary-row"><span>Subtotal (before discount)</span><span>SAR ${fmt(subtotalBefore)}</span></div>
+        <div class="summary-row disc"><span>🏷️ Total Discount</span><span>− SAR ${fmt(discAmt)}</span></div>
+        <div class="summary-row net"><span>Subtotal (after discount)</span><span>SAR ${fmt(subtotalAfter)}</span></div>
+      ` : `<div class="summary-row net"><span>Subtotal</span><span>SAR ${fmt(subtotalAfter)}</span></div>`}
+      <div class="summary-row vat-row"><span>VAT (15%)</span><span>SAR ${fmt(Math.round(subtotalAfter * 0.15))}</span></div>
+      <div class="summary-grand">
+        <span class="summary-grand-label">GRAND TOTAL</span>
+        <span class="summary-grand-val">SAR ${fmt(Math.round(subtotalAfter * 1.15))}</span>
+      </div>
+    </div>`;
+}
+
+function renderCart() {
+  const items = getCartItems();
+  const container = document.getElementById('cart-content');
+  if (!items.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🛒</div><p style="font-size:15px;margin-bottom:14px">Your cart is empty.</p><button class="btn btn-primary" onclick="showPage('catalog')">Browse Catalog</button></div>`;
+    return;
+  }
+
+  const subtotalBefore = cartSubtotalBefore();
+  const discAmt = Math.round(cartTotalDiscountAmt());
+  const subtotalAfter = cartSubtotalAfter();
+  const anyDisc = hasAnyDiscount();
+
+  container.innerHTML = `
+    <div class="cart-table">
+      <table>
+        <thead><tr>
+          <th class="c" style="width:28px"></th>
+          <th>#</th>
+          <th>Brand</th>
+          <th>Item Code</th>
+          <th>Product Name</th>
+          <th class="r">Base Price</th>
+          <th class="c">Discount %</th>
+          <th class="r">Net Price</th>
+          <th class="c">Qty</th>
+          <th class="r">Line Total</th>
+          <th class="c"></th>
+        </tr></thead>
+        <tbody>
+          ${items.map((item, i) => {
+            const cfg = getVendorCfg(item.vendor);
+            const base = getPricingBase(item); // pricing base (mode-dependent) for export calculations       // always unit_price — display column only
+            const pricingBase = getPricingBase(item); // unit_price or ext30 — used in calculations
+            const net = getItemNetPrice(item);
+            const disc = item.discount || 0;
+            const lineTotal = net * item.qty;
+            const hasDisc = disc > 0;
+            // Escape item_code for use in inline JS (handle special chars like /)
+            const safeCode = item.item_code.replace(/'/g, "\\'");
+            const isFirst = i === 0;
+            const isLast  = i === items.length - 1;
+            return `<tr>
+              <td style="text-align:center;padding:4px 6px">
+                <div class="order-ctrl">
+                  <button class="order-btn" onclick="moveCartItem('${safeCode}',-1)" ${isFirst?'disabled':''} title="Move up">↑</button>
+                  <span class="drag-handle">☰</span>
+                  <button class="order-btn" onclick="moveCartItem('${safeCode}',1)" ${isLast?'disabled':''} title="Move down">↓</button>
+                </div>
+              </td>
+              <td style="color:var(--muted);font-size:12px">${i+1}</td>
+              <td><span class="brand-chip" style="background:${cfg.color}">${cfg.icon} ${cfg.short}</span></td>
+              <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--lf);font-weight:600;white-space:nowrap">${item.item_code}</td>
+              <td style="font-weight:600;font-size:12px;max-width:160px">${item.product_name}</td>
+              <td style="text-align:right;font-weight:600;color:var(--muted);white-space:nowrap">SAR ${fmt(base)}</td>
+              <td style="text-align:center">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                  <div style="display:flex;align-items:center;gap:4px">
+                    <input
+                      type="number" min="0" max="100" step="0.5"
+                      value="${disc}"
+                      class="disc-input${hasDisc?' has-disc':''}"
+                      oninput="setItemDiscount('${safeCode}', this.value); this.className='disc-input'+(parseFloat(this.value)>0?' has-disc':'')"
+                      title="Enter discount % for this item"
+                    />
+                    <span style="font-size:11px;color:var(--muted);font-weight:600">%</span>
+                  </div>
+                  <div class="disc-presets">
+                    ${[0,5,10,15].map(d => `<button class="disc-preset${disc===d?' active':''}" onclick="setItemDiscountPreset('${safeCode}',${d})" title="${d}% discount">${d}%</button>`).join('')}
+                  </div>
+                </div>
+              </td>
+              <td style="text-align:right;font-weight:800;color:${hasDisc?'var(--success)':cfg.color};white-space:nowrap">
+                SAR ${fmt(Math.round(net))}
+                ${hasDisc?`<div style="font-size:10px;color:var(--muted);text-decoration:line-through;font-weight:400">SAR ${fmt(pricingBase)}</div>`:''}
+              </td>
+              <td>
+                <div class="qty-ctrl">
+                  <button class="qty-btn" onclick="changeQty('${safeCode}',-1)">−</button>
+                  <input
+                    type="number" min="1" step="1"
+                    value="${item.qty}"
+                    class="qty-input"
+                    onchange="setQty('${safeCode}', this.value)"
+                    oninput="setQty('${safeCode}', this.value)"
+                    title="Enter quantity"
+                  />
+                  <button class="qty-btn" onclick="changeQty('${safeCode}',1)">+</button>
+                </div>
+              </td>
+              <td style="text-align:right;font-weight:800;color:${cfg.color};white-space:nowrap">SAR ${fmt(Math.round(lineTotal))}</td>
+              <td><button class="del-btn" onclick="removeFromCart('${safeCode}')">✕</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- [ITEM DISCOUNT] summary section with id for live update -->
+    <div class="cart-summary">
+      <div id="cart-totals-area">
+        ${buildCartSummaryHTML(subtotalBefore, discAmt, subtotalAfter, anyDisc)}
+      </div>
+    </div>
+
+    <div class="cart-actions">
+      <button class="btn btn-outline" onclick="showPage('catalog')">+ Add More</button>
+      <button class="btn btn-primary" onclick="showPage('quote')">Generate Quotation →</button>
+    </div>`;
+}
+
+// ═══════════════════════════════════════
+// CLIENT DATABASE (localStorage)
+// ═══════════════════════════════════════
+function getClients() {
+  try { return JSON.parse(localStorage.getItem('gq_clients') || '[]'); } catch { return []; }
+}
+function saveClients(list) { localStorage.setItem('gq_clients', JSON.stringify(list)); }
+
+function getClientFormData() {
+  return {
+    id: selectedClientId || Date.now().toString(),
+    name: document.getElementById('c-name').value.trim(),
+    company: document.getElementById('c-company').value.trim(),
+    contact: document.getElementById('c-contact').value.trim(),
+    phone: document.getElementById('c-phone').value.trim(),
+    email: document.getElementById('c-email').value.trim(),
+    vat: document.getElementById('c-vat').value.trim(),
+    address: document.getElementById('c-address').value.trim(),
+  };
+}
+function fillClientForm(client) {
+  document.getElementById('c-name').value = client.name || '';
+  document.getElementById('c-company').value = client.company || '';
+  document.getElementById('c-contact').value = client.contact || '';
+  document.getElementById('c-phone').value = client.phone || '';
+  document.getElementById('c-email').value = client.email || '';
+  document.getElementById('c-vat').value = client.vat || '';
+  document.getElementById('c-address').value = client.address || '';
+  syncClientToQuote();
+}
+function syncClientToQuote() { renderQuote(); }
+
+function saveClient() {
+  const data = getClientFormData();
+  if (!data.name || !data.company) { showFlash('⚠️ Client Name and Company are required.', true); return; }
+  const clients = getClients();
+  const exists = clients.find(c => c.name.toLowerCase()===data.name.toLowerCase() && c.company.toLowerCase()===data.company.toLowerCase() && c.id!==data.id);
+  if (exists) { showFlash('⚠️ A client with this name and company already exists.', true); return; }
+  data.id = Date.now().toString();
+  clients.push(data);
+  saveClients(clients);
+  selectedClientId = data.id;
+  document.getElementById('btn-update-client').style.display = 'inline-flex';
+  document.getElementById('btn-delete-client').style.display = 'inline-flex';
+  renderClientList();
+  showFlash('✅ Client saved: ' + data.name);
+}
+function updateClient() {
+  if (!selectedClientId) return;
+  const data = getClientFormData();
+  if (!data.name || !data.company) { showFlash('⚠️ Client Name and Company are required.', true); return; }
+  saveClients(getClients().map(c => c.id===selectedClientId ? {...data, id:selectedClientId} : c));
+  renderClientList(); renderQuote();
+  showFlash('✅ Client updated: ' + data.name);
+}
+function deleteClient() {
+  if (!selectedClientId) return;
+  const client = getClients().find(c=>c.id===selectedClientId);
+  if (!client) return;
+  if (!confirm(`Delete client "${client.name}"? This cannot be undone.`)) return;
+  saveClients(getClients().filter(c=>c.id!==selectedClientId));
+  selectedClientId = null; newClientForm();
+  showFlash('🗑️ Client deleted.');
+}
+function selectClient(id) {
+  const client = getClients().find(c=>c.id===id);
+  if (!client) return;
+  selectedClientId = id;
+  fillClientForm(client);
+  document.getElementById('btn-update-client').style.display = 'inline-flex';
+  document.getElementById('btn-delete-client').style.display = 'inline-flex';
+  document.querySelectorAll('.client-item').forEach(el => el.classList.toggle('selected', el.dataset.id===id));
+  renderQuote();
+  showFlash('✅ Client loaded: ' + client.name);
+}
+function newClientForm() {
+  selectedClientId = null;
+  ['c-name','c-company','c-contact','c-phone','c-email','c-vat','c-address'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('btn-update-client').style.display = 'none';
+  document.getElementById('btn-delete-client').style.display = 'none';
+  document.querySelectorAll('.client-item').forEach(el=>el.classList.remove('selected'));
+  renderQuote();
+}
+function toggleClientList() {
+  const sec = document.getElementById('client-list-section');
+  const isVisible = sec.style.display !== 'none';
+  sec.style.display = isVisible ? 'none' : 'block';
+  if (!isVisible) renderClientList();
+}
+function renderClientList() {
+  const q = document.getElementById('client-search')?.value.toLowerCase().trim() || '';
+  const clients = getClients().filter(c =>
+    !q || c.name.toLowerCase().includes(q) || c.company.toLowerCase().includes(q) || (c.phone||'').includes(q)
+  );
+  const container = document.getElementById('client-list');
+  if (!clients.length) {
+    container.innerHTML = `<div class="no-clients">${q ? 'No clients match your search.' : 'No saved clients yet. Fill the form and click Save Client.'}</div>`;
+    return;
+  }
+  container.innerHTML = clients.map(c => `
+    <div class="client-item${selectedClientId===c.id?' selected':''}" data-id="${c.id}" onclick="selectClient('${c.id}')">
+      <div class="client-item-info">
+        <div class="client-item-name">${c.name}</div>
+        <div class="client-item-co">${c.company}${c.phone?' · '+c.phone:''}</div>
+      </div>
+      <div class="client-item-actions">
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();selectClient('${c.id}')">Load</button>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════
+// QUOTATION RENDER — [ITEM DISCOUNT] per-line discount in preview
+// ═══════════════════════════════════════
+function renderQuote() {
+  const ref = getRef();
+  const name = document.getElementById('c-name')?.value.trim() || 'Client Name';
+  const company = document.getElementById('c-company')?.value.trim() || 'Company Name';
+  const contact = document.getElementById('c-contact')?.value.trim() || '';
+  const phone = document.getElementById('c-phone')?.value.trim() || '';
+  const email = document.getElementById('c-email')?.value.trim() || '';
+  const vat = document.getElementById('c-vat')?.value.trim() || '';
+  const address = document.getElementById('c-address')?.value.trim() || '';
+  const date = document.getElementById('q-date')?.value || today();
+  const validity = document.getElementById('q-validity')?.value || '30 days';
+  const pLabel = priceType==='rrp' ? 'U. RRP' : 'U. EXTD 30%';
+  const items = getCartItems();
+
+  // Group by brand
+  const byBrand = {};
+  items.forEach(item => { if(!byBrand[item.vendor]) byBrand[item.vendor]=[]; byBrand[item.vendor].push(item); });
+  const brands = Object.keys(byBrand);
+
+  // aggregate totals
+  const subtotalBefore = cartSubtotalBefore();
+  const totalDiscAmt = Math.round(cartTotalDiscountAmt());
+  const subtotalAfter = cartSubtotalAfter();
+  const anyDisc = hasAnyDiscount();
+  const vat15 = Math.round(subtotalAfter * 0.15);
+  const grand = Math.round(subtotalAfter + vat15);
+
+  // brand sections with per-item discount columns
+  const brandSections = brands.map(brand => {
+    const cfg = getVendorCfg(brand);
+    const bItems = byBrand[brand];
+    const bNetTotal = bItems.reduce((s, i) => s + getItemNetPrice(i) * i.qty, 0);
+    const bHasDisc = bItems.some(i => i.discount > 0);
+    return `<div class="quote-brand-section">
+      <div class="quote-brand-header">
+        <div class="quote-brand-label" style="background:${cfg.color}">${cfg.icon} ${brand}</div>
+        <div class="quote-brand-line"></div>
+      </div>
+      <div class="quote-table-wrap">
+      <table class="quote-table">
+        <thead><tr style="background:${cfg.color}15">
+          <th style="color:${cfg.color};border-color:${cfg.color}">#</th>
+          <th style="color:${cfg.color};border-color:${cfg.color}">Item Code</th>
+          <th style="color:${cfg.color};border-color:${cfg.color}">Product Name</th>
+          <th style="color:${cfg.color};border-color:${cfg.color}">Description</th>
+          <th class="r" style="color:${cfg.color};border-color:${cfg.color}">Base (SAR)</th>
+          <th class="r" style="color:${cfg.color};border-color:${cfg.color}">Disc.%</th>
+          <th class="r" style="color:${cfg.color};border-color:${cfg.color}">Net (SAR)</th>
+          <th class="r" style="color:${cfg.color};border-color:${cfg.color}">Qty</th>
+          <th class="r" style="color:${cfg.color};border-color:${cfg.color}">Total (SAR)</th>
+        </tr></thead>
+        <tbody>
+          ${bItems.map((item, i) => {
+            const base = getBasePrice(item);       // always unit_price — display only
+            const pricingBase = getPricingBase(item); // price mode basis for calculations
+            const net = getItemNetPrice(item);
+            const disc = item.discount || 0;
+            const hasDisc = disc > 0;
+            return `<tr>
+              <td style="color:var(--muted)">${i+1}</td>
+              <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${cfg.color};font-weight:600">${item.item_code}</td>
+              <td style="font-weight:600">${item.product_name}</td>
+              <td style="color:var(--muted);font-size:11px">${item.description||'—'}</td>
+              <td class="r" style="font-weight:700">${fmt(base)}</td>
+              <td class="r" style="${hasDisc?'color:var(--muted);text-decoration:line-through;font-size:11px':'color:var(--muted)'}">${hasDisc?fmt(pricingBase):'—'}</td>
+              <td class="r" style="${hasDisc?'color:var(--success);font-weight:700':'color:var(--muted)'}">${hasDisc?`-${disc}%`:'—'}</td>
+              <td class="r" style="font-weight:800;color:${hasDisc?'var(--success)':cfg.color}">${fmt(Math.round(net))}</td>
+              <td class="r" style="font-weight:700">${item.qty}</td>
+              <td class="r" style="font-weight:800;color:${cfg.color}">${fmt(Math.round(net*item.qty))}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot><tr style="background:${cfg.color}10">
+          <td colspan="8" style="text-align:right;color:${cfg.color};padding:9px 12px;font-weight:700">${brand} Subtotal</td>
+          <td style="text-align:right;color:${cfg.color};padding:9px 12px;font-weight:800">SAR ${fmt(Math.round(bNetTotal))}</td>
+        </tr></tfoot>
+      </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('quote-preview').innerHTML = `
+    <div class="quote-preview">
+      <div class="quote-header">
+        <div>
+          <div class="quote-company">GYM EQUIPMENT QUOTATION</div>
+          <div class="quote-tagline">Professional Gym Equipment — Saudi Arabia</div>
+          <div class="quote-brands">
+            ${brands.map(b=>`<span class="quote-brand-tag">${getVendorCfg(b).icon} ${b}</span>`).join('')}
+            ${anyDisc?`<span class="quote-brand-tag" style="background:rgba(26,158,92,0.35)">🏷️ Item Discounts Applied</span>`:''}
+          </div>
+        </div>
+        <div class="quote-meta">
+          <div class="quote-num">${ref}</div>
+          <div class="quote-date">Date: ${date}</div>
+          <div class="quote-date">Valid: ${validity}</div>
+          <div class="quote-date" style="margin-top:4px;font-size:11px;opacity:0.6">${pLabel} pricing</div>
+        </div>
+      </div>
+
+      <div class="quote-client">
+        <div class="quote-client-block">
+          <div class="quote-client-label">Prepared For</div>
+          <div class="quote-client-name">${name}</div>
+          <div class="quote-client-co">${company}</div>
+          ${contact?`<div class="quote-client-detail">👤 ${contact}</div>`:''}
+          ${phone?`<div class="quote-client-detail">📞 ${phone}</div>`:''}
+          ${email?`<div class="quote-client-detail">✉️ ${email}</div>`:''}
+        </div>
+        <div class="quote-client-block" style="text-align:right">
+          ${address?`<div class="quote-client-label">Address</div><div class="quote-client-detail">${address}</div>`:''}
+          ${vat?`<div style="margin-top:8px"><div class="quote-client-label">VAT / CR Number</div><div style="font-size:13px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace">${vat}</div></div>`:''}
+        </div>
+      </div>
+
+      <div class="quote-body">
+        ${!items.length
+          ? '<p style="color:var(--muted);padding:40px;text-align:center">No items in cart. Go to Catalog to add products.</p>'
+          : brandSections + `
+          <div class="quote-totals">
+            <div class="totals-box">
+              ${anyDisc ? `
+              <div class="total-row"><span>Subtotal (before discount)</span><span>SAR ${fmt(subtotalBefore)}</span></div>
+              <div class="total-row discount-line"><span>🏷️ Total Discount Amount</span><span>− SAR ${fmt(totalDiscAmt)}</span></div>
+              <div class="total-row subtotal-line"><span>Subtotal (after discount)</span><span>SAR ${fmt(Math.round(subtotalAfter))}</span></div>
+              ` : `<div class="total-row subtotal-line"><span>Subtotal</span><span>SAR ${fmt(Math.round(subtotalAfter))}</span></div>`}
+              <div class="total-row"><span>VAT (15%)</span><span>SAR ${fmt(vat15)}</span></div>
+              <div class="grand-row">
+                <span class="grand-label">GRAND TOTAL</span>
+                <span class="grand-val">SAR ${fmt(grand)}</span>
+              </div>
+            </div>
+          </div>
+          <div class="quote-terms">
+            <div class="quote-terms-title">Terms & Conditions</div>
+            <p>
+              • Prices are in Saudi Riyals (SAR). VAT at 15% is shown separately above.<br/>
+              • This quotation is valid for ${validity} from the date of issue.<br/>
+              • Delivery and installation charges are not included unless specified.<br/>
+              • All products are subject to availability at time of order confirmation.
+            </p>
+          </div>`
+        }
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════
+// EXCEL EXPORT — [ITEM DISCOUNT] per-line discount columns
+// ═══════════════════════════════════════
+function exportExcel() {
+  const items = getCartItems();
+  if (!items.length) { showFlash('⚠️ Cart is empty!', true); return; }
+  const ref = getRef();
+  const name = document.getElementById('c-name')?.value.trim() || '';
+  const company = document.getElementById('c-company')?.value.trim() || 'Client';
+  const contact = document.getElementById('c-contact')?.value.trim() || '';
+  const phone = document.getElementById('c-phone')?.value.trim() || '';
+  const email = document.getElementById('c-email')?.value.trim() || '';
+  const vat = document.getElementById('c-vat')?.value.trim() || '';
+  const address = document.getElementById('c-address')?.value.trim() || '';
+  const date = document.getElementById('q-date')?.value || today();
+  const validity = document.getElementById('q-validity')?.value || '30 days';
+  const pLabel = priceType==='rrp' ? 'U. RRP' : 'U. EXTD 30%';
+
+  const subtotalBefore = cartSubtotalBefore();
+  const totalDiscAmt = Math.round(cartTotalDiscountAmt());
+  const subtotalAfter = cartSubtotalAfter();
+  const anyDisc = hasAnyDiscount();
+  const vat15 = Math.round(subtotalAfter * 0.15);
+  const grand = Math.round(subtotalAfter + vat15);
+
+  const esc = v => `"${String(v===null||v===undefined?'':v).replace(/"/g,'""')}"`;
+
+  const rows = [
+    ['QUOTATION REFERENCE', ref].map(esc).join(','),
+    ['DATE', date].map(esc).join(','),
+    ['VALIDITY', validity].map(esc).join(','),
+    ['BASE PRICE TYPE', pLabel].map(esc).join(','),
+    [''],
+    ['CLIENT NAME', name].map(esc).join(','),
+    ['COMPANY', company].map(esc).join(','),
+    contact ? ['CONTACT', contact].map(esc).join(',') : null,
+    phone   ? ['PHONE', phone].map(esc).join(',') : null,
+    email   ? ['EMAIL', email].map(esc).join(',') : null,
+    vat     ? ['VAT / CR', vat].map(esc).join(',') : null,
+    address ? ['ADDRESS', address].map(esc).join(',') : null,
+    [''],
+    // Column headers — [ITEM DISCOUNT] always include disc columns per item
+    ['#','Item Code','Product Name','Description','Vendor / Brand',
+     `Base Unit Price (${pLabel})`, 'Discount %', 'Net Unit Price (SAR)',
+     'Line Disc. Amount', 'Qty', 'Line Total (SAR)'].map(esc).join(','),
+    // Item rows
+    ...items.map((item, i) => {
+      const base = getBasePrice(item);
+      const net = Math.round(getItemNetPrice(item));
+      const disc = item.discount || 0;
+      const lineDiscAmt = Math.round((base - net) * item.qty);
+      const lineTotal = Math.round(net * item.qty);
+      return [i+1, item.item_code, item.product_name, item.description||'', item.vendor,
+              base, disc > 0 ? `${disc}%` : '0%', net, lineDiscAmt, item.qty, lineTotal
+             ].map(esc).join(',');
+    }),
+    [''],
+    anyDisc ? ['','','','','','','','','','Subtotal (before discount)', subtotalBefore].map(esc).join(',') : null,
+    anyDisc ? ['','','','','','','','','','Total Discount Amount', `-${totalDiscAmt}`].map(esc).join(',') : null,
+    ['','','','','','','','','','Subtotal (after discount)', Math.round(subtotalAfter)].map(esc).join(','),
+    ['','','','','','','','','','VAT (15%)', vat15].map(esc).join(','),
+    ['','','','','','','','','','GRAND TOTAL', grand].map(esc).join(','),
+  ].filter(r => r !== null);
+
+  const blob = new Blob(['\uFEFF' + rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${ref}_${company}_${date}.csv`.replace(/\s+/g,'_');
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showFlash('✅ Excel exported: ' + a.download);
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+(function init() {
+  document.getElementById('q-date').value = today();
+  const lastRef = localStorage.getItem('gq_last_ref');
+  if (lastRef) document.getElementById('q-ref').value = lastRef;
+  // Render brand bar with demo data placeholders while sheet loads
+  activeBrands = [...getUniqueVendors()];
+  renderBrandBar();
+  // Auto-load the shared default price list on startup — no user action needed
+  loadFromSheet();
+})();
+</script>
+</body>
+</html>
