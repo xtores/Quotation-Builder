@@ -1197,6 +1197,8 @@ function renderClientList() {
 // ═══════════════════════════════════════
 function renderQuote() {
   const ref = getRef();
+  // Set document title so browser "Save as PDF" suggests the reference as filename
+  document.title = ref && ref !== 'SQ-DRAFT' ? ref : 'quotation';
   const name = document.getElementById('c-name')?.value.trim() || 'Client Name';
   const company = document.getElementById('c-company')?.value.trim() || 'Company Name';
   const contact = document.getElementById('c-contact')?.value.trim() || '';
@@ -1209,10 +1211,8 @@ function renderQuote() {
   const pLabel = priceType==='rrp' ? 'U. RRP' : 'U. EXTD 30%';
   const items = getCartItems();
 
-  // Group by brand
-  const byBrand = {};
-  items.forEach(item => { if(!byBrand[item.vendor]) byBrand[item.vendor]=[]; byBrand[item.vendor].push(item); });
-  const brands = Object.keys(byBrand);
+  // Collect unique brands for the header tags only (no per-brand sections)
+  const brands = [...new Set(items.map(i => i.vendor))];
 
   // aggregate totals
   const subtotalBefore = cartSubtotalBefore();
@@ -1222,59 +1222,47 @@ function renderQuote() {
   const vat15 = Math.round(subtotalAfter * 0.15);
   const grand = Math.round(subtotalAfter + vat15);
 
-  // brand sections with per-item discount columns
-  const brandSections = brands.map(brand => {
-    const cfg = getVendorCfg(brand);
-    const bItems = byBrand[brand];
-    const bNetTotal = bItems.reduce((s, i) => s + getItemNetPrice(i) * i.qty, 0);
-    const bHasDisc = bItems.some(i => i.discount > 0);
-    return `<div class="quote-brand-section">
-      <div class="quote-brand-header">
-        <div class="quote-brand-label" style="background:${cfg.color}">${cfg.icon} ${brand}</div>
-        <div class="quote-brand-line"></div>
-      </div>
-      <div class="quote-table-wrap">
-      <table class="quote-table">
-        <thead><tr style="background:${cfg.color}15">
-          <th style="color:${cfg.color};border-color:${cfg.color}">#</th>
-          <th style="color:${cfg.color};border-color:${cfg.color}">Item Code</th>
-          <th style="color:${cfg.color};border-color:${cfg.color}">Product Name</th>
-          <th style="color:${cfg.color};border-color:${cfg.color}">Description</th>
-          <th class="r" style="color:${cfg.color};border-color:${cfg.color}">Base (SAR)</th>
-          <th class="r" style="color:${cfg.color};border-color:${cfg.color}">Disc.%</th>
-          <th class="r" style="color:${cfg.color};border-color:${cfg.color}">Net (SAR)</th>
-          <th class="r" style="color:${cfg.color};border-color:${cfg.color}">Qty</th>
-          <th class="r" style="color:${cfg.color};border-color:${cfg.color}">Total (SAR)</th>
-        </tr></thead>
-        <tbody>
-          ${bItems.map((item, i) => {
-            const base = getBasePrice(item);       // always unit_price — display only
-            const pricingBase = getPricingBase(item); // price mode basis for calculations
-            const net = getItemNetPrice(item);
-            const disc = item.discount || 0;
-            const hasDisc = disc > 0;
-            return `<tr>
-              <td style="color:var(--muted)">${i+1}</td>
-              <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${cfg.color};font-weight:600">${item.item_code}</td>
-              <td style="font-weight:600">${item.product_name}</td>
-              <td style="color:var(--muted);font-size:11px">${item.description||'—'}</td>
-              <td class="r" style="font-weight:700">${fmt(base)}</td>
-              <td class="r" style="${hasDisc?'color:var(--muted);text-decoration:line-through;font-size:11px':'color:var(--muted)'}">${hasDisc?fmt(pricingBase):'—'}</td>
-              <td class="r" style="${hasDisc?'color:var(--success);font-weight:700':'color:var(--muted)'}">${hasDisc?`-${disc}%`:'—'}</td>
-              <td class="r" style="font-weight:800;color:${hasDisc?'var(--success)':cfg.color}">${fmt(Math.round(net))}</td>
-              <td class="r" style="font-weight:700">${item.qty}</td>
-              <td class="r" style="font-weight:800;color:${cfg.color}">${fmt(Math.round(net*item.qty))}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-        <tfoot><tr style="background:${cfg.color}10">
-          <td colspan="8" style="text-align:right;color:${cfg.color};padding:9px 12px;font-weight:700">${brand} Subtotal</td>
-          <td style="text-align:right;color:${cfg.color};padding:9px 12px;font-weight:800">SAR ${fmt(Math.round(bNetTotal))}</td>
-        </tr></tfoot>
-      </table>
-      </div>
+  // Single unified table — all items in cart order, with Brand column
+  const unifiedTable = `
+    <div class="quote-table-wrap">
+    <table class="quote-table">
+      <thead><tr style="background:var(--lf-dark)">
+        <th style="color:#fff;border-color:#fff">#</th>
+        <th style="color:#fff;border-color:#fff">Brand</th>
+        <th style="color:#fff;border-color:#fff">Item Code</th>
+        <th style="color:#fff;border-color:#fff">Product Name</th>
+        <th style="color:#fff;border-color:#fff">Description</th>
+        <th class="r" style="color:#fff;border-color:#fff">Base (SAR)</th>
+        <th class="r" style="color:#fff;border-color:#fff">Disc.%</th>
+        <th class="r" style="color:#fff;border-color:#fff">Net (SAR)</th>
+        <th class="r" style="color:#fff;border-color:#fff">Qty</th>
+        <th class="r" style="color:#fff;border-color:#fff">Total (SAR)</th>
+      </tr></thead>
+      <tbody>
+        \${items.map((item, i) => {
+          const cfg = getVendorCfg(item.vendor);
+          const base = getBasePrice(item);
+          const pricingBase = getPricingBase(item);
+          const net = getItemNetPrice(item);
+          const disc = item.discount || 0;
+          const hasDisc = disc > 0;
+          return \`<tr>
+            <td style="color:var(--muted)">\${i+1}</td>
+            <td><span style="display:inline-block;background:\${cfg.color};color:#fff;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap">\${cfg.icon} \${item.vendor}</span></td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:\${cfg.color};font-weight:600">\${item.item_code}</td>
+            <td style="font-weight:600">\${item.product_name}</td>
+            <td style="color:var(--muted);font-size:11px">\${item.description||'—'}</td>
+            <td class="r" style="font-weight:700">\${fmt(base)}</td>
+            <td class="r" style="\${hasDisc?'color:var(--muted);text-decoration:line-through;font-size:11px':'color:var(--muted)'}">\${hasDisc?fmt(pricingBase):'—'}</td>
+            <td class="r" style="\${hasDisc?'color:var(--success);font-weight:700':'color:var(--muted)'}">\${hasDisc?\`-\${disc}%\`:'—'}</td>
+            <td class="r" style="font-weight:800;color:\${hasDisc?'var(--success)':cfg.color}">\${fmt(Math.round(net))}</td>
+            <td class="r" style="font-weight:700">\${item.qty}</td>
+            <td class="r" style="font-weight:800;color:\${cfg.color}">\${fmt(Math.round(net*item.qty))}</td>
+          \</tr>\`;
+        }).join('')}
+      </tbody>
+    </table>
     </div>`;
-  }).join('');
 
   document.getElementById('quote-preview').innerHTML = `
     <div class="quote-preview">
@@ -1319,7 +1307,7 @@ function renderQuote() {
       <div class="quote-body">
         ${!items.length
           ? '<p style="color:var(--muted);padding:40px;text-align:center">No items in cart. Go to Catalog to add products.</p>'
-          : brandSections + `
+          : unifiedTable + `
           <div class="quote-totals">
             <div class="totals-box">
               ${anyDisc ? `
