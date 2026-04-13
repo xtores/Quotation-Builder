@@ -1222,7 +1222,38 @@ function renderQuote() {
   const vat15 = Math.round(subtotalAfter * 0.15);
   const grand = Math.round(subtotalAfter + vat15);
 
-  // Single unified table — all items in cart order, with Brand column
+  // Build item rows as a plain string (avoids nested template literal escaping issues)
+  function buildTableRows(itemList) {
+    return itemList.map((item, i) => {
+      const cfg        = getVendorCfg(item.vendor);
+      const base       = getBasePrice(item);
+      const pricingBase = getPricingBase(item);
+      const net        = getItemNetPrice(item);
+      const disc       = item.discount || 0;
+      const hasDisc    = disc > 0;
+      const discStyle  = hasDisc ? 'color:var(--muted);text-decoration:line-through;font-size:11px' : 'color:var(--muted)';
+      const discVal    = hasDisc ? fmt(pricingBase) : '—';
+      const pctStyle   = hasDisc ? 'color:var(--success);font-weight:700' : 'color:var(--muted)';
+      const pctVal     = hasDisc ? '-' + disc + '%' : '—';
+      const netStyle   = 'font-weight:800;color:' + (hasDisc ? 'var(--success)' : cfg.color);
+      return '<tr>'
+        + '<td style="color:var(--muted)">' + (i+1) + '</td>'
+        + '<td><span style="display:inline-block;background:' + cfg.color + ';color:#fff;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap">' + cfg.icon + ' ' + item.vendor + '</span></td>'
+        + '<td style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:' + cfg.color + ';font-weight:600">' + item.item_code + '</td>'
+        + '<td style="font-weight:600">' + item.product_name + '</td>'
+        + '<td style="color:var(--muted);font-size:11px">' + (item.description || '—') + '</td>'
+        + '<td class="r" style="font-weight:700">' + fmt(base) + '</td>'
+        + '<td class="r" style="' + discStyle + '">' + discVal + '</td>'
+        + '<td class="r" style="' + pctStyle + '">' + pctVal + '</td>'
+        + '<td class="r" style="' + netStyle + '">' + fmt(Math.round(net)) + '</td>'
+        + '<td class="r" style="font-weight:700">' + item.qty + '</td>'
+        + '<td class="r" style="font-weight:800;color:' + cfg.color + '">' + fmt(Math.round(net * item.qty)) + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  // Single unified table — all items in cart order, Brand as a column
+  const tableRows  = buildTableRows(items);
   const unifiedTable = `
     <div class="quote-table-wrap">
     <table class="quote-table">
@@ -1238,29 +1269,7 @@ function renderQuote() {
         <th class="r" style="color:#fff;border-color:#fff">Qty</th>
         <th class="r" style="color:#fff;border-color:#fff">Total (SAR)</th>
       </tr></thead>
-      <tbody>
-        \${items.map((item, i) => {
-          const cfg = getVendorCfg(item.vendor);
-          const base = getBasePrice(item);
-          const pricingBase = getPricingBase(item);
-          const net = getItemNetPrice(item);
-          const disc = item.discount || 0;
-          const hasDisc = disc > 0;
-          return \`<tr>
-            <td style="color:var(--muted)">\${i+1}</td>
-            <td><span style="display:inline-block;background:\${cfg.color};color:#fff;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap">\${cfg.icon} \${item.vendor}</span></td>
-            <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:\${cfg.color};font-weight:600">\${item.item_code}</td>
-            <td style="font-weight:600">\${item.product_name}</td>
-            <td style="color:var(--muted);font-size:11px">\${item.description||'—'}</td>
-            <td class="r" style="font-weight:700">\${fmt(base)}</td>
-            <td class="r" style="\${hasDisc?'color:var(--muted);text-decoration:line-through;font-size:11px':'color:var(--muted)'}">\${hasDisc?fmt(pricingBase):'—'}</td>
-            <td class="r" style="\${hasDisc?'color:var(--success);font-weight:700':'color:var(--muted)'}">\${hasDisc?\`-\${disc}%\`:'—'}</td>
-            <td class="r" style="font-weight:800;color:\${hasDisc?'var(--success)':cfg.color}">\${fmt(Math.round(net))}</td>
-            <td class="r" style="font-weight:700">\${item.qty}</td>
-            <td class="r" style="font-weight:800;color:\${cfg.color}">\${fmt(Math.round(net*item.qty))}</td>
-          \</tr>\`;
-        }).join('')}
-      </tbody>
+      <tbody>${tableRows}</tbody>
     </table>
     </div>`;
 
